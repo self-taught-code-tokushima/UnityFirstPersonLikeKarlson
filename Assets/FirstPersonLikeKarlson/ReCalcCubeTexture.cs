@@ -5,6 +5,9 @@ using UnityEngine;
 [ExecuteInEditMode]
 public class ReCalcCubeTexture : MonoBehaviour
 {
+    // オリジナルからの変更箇所です
+    public float density = 0.1f;
+    
     private Vector3 _currentScale;
 
     private void Start()

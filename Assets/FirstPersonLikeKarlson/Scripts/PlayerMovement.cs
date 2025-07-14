@@ -118,9 +118,15 @@ public class PlayerMovement : MonoBehaviour {
             StopCrouch();
     }
 
+    /// <summary>
+    /// プレイヤーがしゃがみ始めたときの処理
+    /// プレイヤーのコライダーを縮小し、移動している場合は前方にブーストを与える
+    /// </summary>
     private void StartCrouch() {
-        transform.localScale = crouchScale;
-        transform.position = new Vector3(transform.position.x, transform.position.y - 0.5f, transform.position.z);
+        transform.localScale = crouchScale; // プレイヤーモデルを縮小します。
+        transform.position = new Vector3(transform.position.x, transform.position.y - 0.5f, transform.position.z); // プレイヤーの位置を下げます。
+        
+        // 地面を移動している場合は、前方に力を加えてスライドを開始します。
         if (rb.linearVelocity.magnitude > 0.5f) {
             if (grounded) {
                 rb.AddForce(orientation.transform.forward * slideForce);
@@ -128,20 +134,28 @@ public class PlayerMovement : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// プレイヤーがしゃがむのをやめたときの処理
+    /// プレイヤーのコライダーのサイズと位置をリセットする
+    /// </summary>
     private void StopCrouch() {
-        transform.localScale = playerScale;
+        transform.localScale = playerScale;  // プレイヤーモデルの高さを元に戻します。
         transform.position = new Vector3(transform.position.x, transform.position.y + 0.5f, transform.position.z);
     }
 
     private void Movement() {
         //Extra gravity
+        // 重力をシミュレートするために一定の下向きの力を適用している
+        // 10 は調整値
         rb.AddForce(Vector3.down * Time.deltaTime * 10);
         
         //Find actual velocity relative to where player is looking
+        // プレイヤーが見ている方向に対する速度を求める
         Vector2 mag = FindVelRelativeToLook();
         float xMag = mag.x, yMag = mag.y;
 
         //Counteract sliding and sloppy movement
+        // コントロールをより応答しやすくするために、カウンタームーブメント (逆方向の動作) を適用
         CounterMovement(x, y, mag);
         
         //If holding jump && ready to jump, then jump
@@ -151,27 +165,34 @@ public class PlayerMovement : MonoBehaviour {
         float maxSpeed = this.maxSpeed;
         
         //If sliding down a ramp, add force down so player stays grounded and also builds speed
+        // 斜道でスライドダウンしている場合は、地面によりよくくっつくように下向きの力を適用
+        // 3000 は調整値
         if (crouching && grounded && readyToJump) {
             rb.AddForce(Vector3.down * Time.deltaTime * 3000);
             return;
         }
         
         //If speed is larger than maxspeed, cancel out the input so you don't go over max speed
+        // プレイヤーがその方向ですでに最高速度で移動している場合は、移動入力を制限する
         if (x > 0 && xMag > maxSpeed) x = 0;
         if (x < 0 && xMag < -maxSpeed) x = 0;
         if (y > 0 && yMag > maxSpeed) y = 0;
         if (y < 0 && yMag < -maxSpeed) y = 0;
 
         //Some multipliers
+        // プレイヤーの状態（接地、空中、壁走りなど）に基づいて移動力を調整するための乗数
+        // 1f = 通常の移動速度
         float multiplier = 1f, multiplierV = 1f;
         
         // Movement in air
+        // 空中ではコントロールが低下するということ
         if (!grounded) {
             multiplier = 0.5f;
             multiplierV = 0.5f;
         }
         
         // Movement while sliding
+        // スライディング中は前方へのコントロールはできない
         if (grounded && crouching) multiplierV = 0f;
 
         //Apply forces to move player
@@ -185,16 +206,20 @@ public class PlayerMovement : MonoBehaviour {
             _input.jump = false;
 
             //Add jump forces
+            // ジャンプのために強い上向きの力を適用
             rb.AddForce(Vector2.up * jumpForce * 1.5f);
+            // 表面の法線から離れる方向に力を適用（例：斜面から押し出す）
             rb.AddForce(normalVector * jumpForce * 0.5f);
             
             //If jumping while falling, reset y velocity.
+            // 落下中とジャンプ中に、y軸の速度をリセットします。
             Vector3 vel = rb.linearVelocity;
             if (rb.linearVelocity.y < 0.5f)
                 rb.linearVelocity = new Vector3(vel.x, 0, vel.z);
             else if (rb.linearVelocity.y > 0) 
                 rb.linearVelocity = new Vector3(vel.x, vel.y / 2, vel.z);
             
+            // ジャンプのクールダウンを開始
             Invoke(nameof(ResetJump), jumpCooldown);
         }
     }
@@ -205,9 +230,7 @@ public class PlayerMovement : MonoBehaviour {
     
     private float desiredX;
     private void Look() {
-        // float mouseX = Input.GetAxis("Mouse X") * sensitivity * Time.fixedDeltaTime * sensMultiplier;
         float mouseX = _input.look.x * sensitivity * Time.fixedDeltaTime * sensMultiplier;
-        // float mouseY = Input.GetAxis("Mouse Y") * sensitivity * Time.fixedDeltaTime * sensMultiplier;
         float mouseY = _input.look.y * sensitivity * Time.fixedDeltaTime * sensMultiplier;
 
         //Find current look rotation
@@ -223,24 +246,35 @@ public class PlayerMovement : MonoBehaviour {
         orientation.transform.localRotation = Quaternion.Euler(0, desiredX, 0);
     }
 
+    /// <summary>
+    /// 移動入力がない場合にプレイヤーを減速させるための力 (逆方向の運動)
+    /// これにより、「キビキビした」感触が生まれ、余計な滑りを防ぐ
+    /// </summary>
     private void CounterMovement(float x, float y, Vector2 mag) {
+        // x: 横方向の入力, y: 前後方向の入力, mag: プレイヤーが見ている方向の速度のベクトル
+        
         if (!grounded || jumping) return;
 
         //Slow down sliding
+        // しゃがんでいる場合は、カウンタームーブメントの代わりに単純なスライディング**摩擦**を適用
         if (crouching) {
             rb.AddForce(moveSpeed * Time.deltaTime * -rb.linearVelocity.normalized * slideCounterMovement);
             return;
         }
 
         //Counter movement
+        // 入力が停止 (x ≒ 0) するか、速度(mag.x)と反対の場合に水平方向にカウンターフォースを適用
         if (Math.Abs(mag.x) > threshold && Math.Abs(x) < 0.05f || (mag.x < -threshold && x > 0) || (mag.x > threshold && x < 0)) {
             rb.AddForce(moveSpeed * orientation.transform.right * Time.deltaTime * -mag.x * counterMovement);
         }
+        
+        // 入力が停止 (y ≒ 0) するか、速度(mag.y)と反対の場合に垂直方向にカウンターフォースを適用
         if (Math.Abs(mag.y) > threshold && Math.Abs(y) < 0.05f || (mag.y < -threshold && y > 0) || (mag.y > threshold && y < 0)) {
             rb.AddForce(moveSpeed * orientation.transform.forward * Time.deltaTime * -mag.y * counterMovement);
         }
         
         //Limit diagonal running. This will also cause a full stop if sliding fast and un-crouching, so not optimal.
+        // 斜め移動の速度を制限します。これにより、しゃがんでいないときに速く移動しすぎることを防ぐ
         if (Mathf.Sqrt((Mathf.Pow(rb.linearVelocity.x, 2) + Mathf.Pow(rb.linearVelocity.z, 2))) > maxSpeed) {
             float fallspeed = rb.linearVelocity.y;
             Vector3 n = rb.linearVelocity.normalized * maxSpeed;
@@ -251,19 +285,23 @@ public class PlayerMovement : MonoBehaviour {
     /// <summary>
     /// Find the velocity relative to where the player is looking
     /// Useful for vectors calculations regarding movement and limiting movement
+    /// プレイヤーが見ている方向に対するプレイヤーの速度を計算します。
     /// </summary>
-    /// <returns></returns>
+    /// <returns>xが横方向の速度、yが前方向の速度であるVector2。</returns>
     public Vector2 FindVelRelativeToLook() {
         float lookAngle = orientation.transform.eulerAngles.y;
-        float moveAngle = Mathf.Atan2(rb.linearVelocity.x, rb.linearVelocity.z) * Mathf.Rad2Deg;
+        float moveAngle = Mathf.Atan2(rb.linearVelocity.x, rb.linearVelocity.z) * Mathf.Rad2Deg; // ラジアンから度へ
 
+        // プレイヤーの移動方向と視線方向の角度差を計算します。
         float u = Mathf.DeltaAngle(lookAngle, moveAngle);
         float v = 90 - u;
 
+        // 三角法を使用して、速度の前方成分と横方向成分を求めます。
         float magnitue = rb.linearVelocity.magnitude;
         float yMag = magnitue * Mathf.Cos(u * Mathf.Deg2Rad);
         float xMag = magnitue * Mathf.Cos(v * Mathf.Deg2Rad);
         
+        // 速度の前方成分と横方向成分をVector2として返します。
         return new Vector2(xMag, yMag);
     }
 

@@ -3,6 +3,7 @@
 
 using System;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour {
 
@@ -42,6 +43,10 @@ public class PlayerMovement : MonoBehaviour {
     //Input
     float x, y;
     bool jumping, sprinting, crouching;
+#if ENABLE_INPUT_SYSTEM
+    private PlayerInput _playerInput;
+#endif
+    private PlayerInputs _input;
     
     //Sliding
     private Vector3 normalVector = Vector3.up;
@@ -55,6 +60,13 @@ public class PlayerMovement : MonoBehaviour {
         playerScale =  transform.localScale;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        
+        _input = GetComponent<PlayerInputs>();
+#if ENABLE_INPUT_SYSTEM
+        _playerInput = GetComponent<PlayerInput>();
+#else
+			Debug.LogError( "missing dependencies");
+#endif
     }
 
     
@@ -71,15 +83,15 @@ public class PlayerMovement : MonoBehaviour {
     /// Find user input. Should put this in its own class but im lazy
     /// </summary>
     private void MyInput() {
-        x = Input.GetAxisRaw("Horizontal");
-        y = Input.GetAxisRaw("Vertical");
-        jumping = Input.GetButton("Jump");
-        crouching = Input.GetKey(KeyCode.LeftControl);
+        x = _input.move.x;
+        y = _input.move.y;
+        jumping = _input.jump;
+        crouching = _input.crouch;
       
         //Crouching
-        if (Input.GetKeyDown(KeyCode.LeftControl))
+        if (_input.crouchPressed)
             StartCrouch();
-        if (Input.GetKeyUp(KeyCode.LeftControl))
+        if (_input.crouchReleased)
             StopCrouch();
     }
 
@@ -147,6 +159,7 @@ public class PlayerMovement : MonoBehaviour {
     private void Jump() {
         if (grounded && readyToJump) {
             readyToJump = false;
+            _input.jump = false;
 
             //Add jump forces
             rb.AddForce(Vector2.up * jumpForce * 1.5f);
@@ -169,8 +182,10 @@ public class PlayerMovement : MonoBehaviour {
     
     private float desiredX;
     private void Look() {
-        float mouseX = Input.GetAxis("Mouse X") * sensitivity * Time.fixedDeltaTime * sensMultiplier;
-        float mouseY = Input.GetAxis("Mouse Y") * sensitivity * Time.fixedDeltaTime * sensMultiplier;
+        // float mouseX = Input.GetAxis("Mouse X") * sensitivity * Time.fixedDeltaTime * sensMultiplier;
+        float mouseX = _input.look.x * sensitivity * Time.fixedDeltaTime * sensMultiplier;
+        // float mouseY = Input.GetAxis("Mouse Y") * sensitivity * Time.fixedDeltaTime * sensMultiplier;
+        float mouseY = _input.look.y * sensitivity * Time.fixedDeltaTime * sensMultiplier;
 
         //Find current look rotation
         Vector3 rot = playerCam.transform.localRotation.eulerAngles;
@@ -267,5 +282,4 @@ public class PlayerMovement : MonoBehaviour {
     private void StopGrounded() {
         grounded = false;
     }
-    
 }

@@ -1,4 +1,5 @@
 // https://github.com/Dsphar/Cube_Texture_Auto_Repeat_Unity/blob/master/ReCalcCubeTexture.cs
+// License: https://github.com/Dsphar/Cube_Texture_Auto_Repeat_Unity/blob/master/LICENSE
 
 using UnityEngine;
 

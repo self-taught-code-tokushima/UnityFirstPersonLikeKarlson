@@ -28,7 +28,7 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerMovement : MonoBehaviour {
+public partial class PlayerMovement : MonoBehaviour {
 
     //Assingables
     public Transform playerCam;

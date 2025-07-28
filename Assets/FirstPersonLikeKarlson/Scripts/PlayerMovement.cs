@@ -445,6 +445,13 @@ public partial class PlayerMovement : MonoBehaviour {
             if (IsWall(normal) && isOnWallRunnableLayer)
             {
                 StartWallRun(normal);
+
+                // 壁からジャンプしない場合や、壁から即着地しない場合に、壁走りを停止するタイミングが無いので
+                // 常に壁走りをキャンセルするタイマーを起動させ、壁にいる間はそれを再起動させ続ける。
+                // もともとの grounded の方法とほぼ同じにしている
+                CancelInvoke(nameof(StopWallRun));
+                const float wallRunCancelDelay = 3f;
+                Invoke(nameof(StopWallRun), Time.deltaTime * wallRunCancelDelay);
             }
         }
 

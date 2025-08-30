@@ -13,6 +13,8 @@ public class PlayerInputs : MonoBehaviour
     public bool sprint;
     public bool shoot;
     public bool autoShoot;
+
+    public bool pause;
     // Crouch関連の変数を追加・整理
     public bool crouch; // Hold: 押している間 true
     public bool crouchPressed; // Press: 押されたフレームでのみ true
@@ -69,6 +71,11 @@ public class PlayerInputs : MonoBehaviour
         {
             crouchReleased = true;
         }
+    }
+
+    public void OnPause(InputValue value)
+    {
+        pause = value.isPressed;
     }
 
 #endif

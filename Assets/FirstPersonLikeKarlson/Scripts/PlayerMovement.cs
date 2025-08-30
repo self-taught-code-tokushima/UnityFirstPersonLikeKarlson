@@ -28,7 +28,8 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public partial class PlayerMovement : MonoBehaviour {
+public partial class PlayerMovement : MonoBehaviour
+{
 
     //Assingables
     public Transform playerCam;
@@ -95,6 +96,11 @@ public partial class PlayerMovement : MonoBehaviour {
 
     #endregion // WallRun
 
+    public Action<bool> OnPause;
+    private bool paused;
+
+    private bool goalReached;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -142,6 +148,26 @@ public partial class PlayerMovement : MonoBehaviour {
             StartCrouch();
         if (_input.crouchReleased)
             StopCrouch();
+
+        if (_input.pause && !goalReached)
+        {
+            Pause();
+        }
+    }
+
+    public void GoalReached()
+    {
+        if (!paused)
+        {
+            goalReached = true;
+        }
+    }
+
+    private void Pause()
+    {
+        paused = !paused;
+        OnPause.Invoke(paused);
+        _input.pause = false;
     }
 
     /// <summary>
@@ -176,6 +202,8 @@ public partial class PlayerMovement : MonoBehaviour {
 
     private void Movement()
     {
+        if (paused || goalReached) return;
+
         //Extra gravity
         // 重力をシミュレートするために一定の下向きの力を適用している
         // 10 は調整値
@@ -293,6 +321,8 @@ public partial class PlayerMovement : MonoBehaviour {
 
     private void Look()
     {
+        if (paused || goalReached) return;
+        
         float mouseX = _input.look.x * sensitivity * Time.fixedDeltaTime * sensMultiplier;
         float mouseY = _input.look.y * sensitivity * Time.fixedDeltaTime * sensMultiplier;
 
